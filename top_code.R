@@ -1,4 +1,3 @@
-# a test string
 # data input 
 library(readr)
 library(readxl)
@@ -75,6 +74,7 @@ monthly_cs_welfare=left_join(monthly_cs,basic_rates, by = c("date", "region")) %
 
 # check for NAs
 summary(monthly_cs_welfare)
+# at this point, sum(monthly_cs_welfare[which(monthly_cs_welfare$income == "low"),]$kwh) = 516059644
 
 
 # read each basic customer excel into one big file
@@ -278,13 +278,13 @@ cs_vs_basic_agg=monthly_cs_welfare %>%
   summarize(amt_billed=sum(amt_billed),
             tot_bill_difference=sum(bill_difference),
             no_accts=sum(no_accts),
-            kwh=sum(kwh)) %>%
+            cs_kwh=sum(kwh)) %>%
   left_join(monthly_basic) %>% 
   left_join(monthly_agg) %>% 
   group_by(income) %>% 
   summarize(amt_billed=sum(amt_billed),
             no_accts=sum(no_accts),
-            kwh=sum(kwh),
+            cs_kwh=sum(cs_kwh),
             tot_bill_difference=sum(tot_bill_difference),
             basic_billed=sum(basic_billed),
             basic_accts=sum(basic_accts),
@@ -295,8 +295,8 @@ cs_vs_basic_agg=monthly_cs_welfare %>%
   mutate(pct_cs_accts=no_accts/(no_accts+basic_accts+agg_accts),
          tot_accts=no_accts+basic_accts+agg_accts,
          pct_cs_billed=amt_billed/(amt_billed+basic_billed+agg_billed),
-         pct_cs_kwh=kwh/sum(kwh+basic_kwh+agg_kwh),
-         tot_kwh=kwh+basic_kwh+agg_kwh)
+         pct_cs_kwh=cs_kwh/(cs_kwh+basic_kwh+agg_kwh),
+         tot_kwh=cs_kwh+basic_kwh+agg_kwh)
 
 write_csv(cs_vs_basic_agg,"../output/cs_vs_basic_agg.csv")
 
