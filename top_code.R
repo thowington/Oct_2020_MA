@@ -1847,6 +1847,7 @@ muni_cs=lapply(zipcode_cs_files,function(x){
 #   mutate(kwh=no_accts*kwh_per_acct) %>% 
 #   select(-kwh_per_acct)
 
+#  fill in gaps in kwh from calculations above
 muni_cs[which(is.na(muni_cs$kwh) == T & 
                 muni_cs$income == "low"),]$kwh <- 
   muni_cs[which(is.na(muni_cs$kwh) == T & 
