@@ -1,5 +1,3 @@
-# This is the final version as of Jan 21, 2021.
-
 # data input 
 library(readr)
 library(readxl)
@@ -49,7 +47,7 @@ monthly_cs=bind_rows(monthly_cs) %>%
             no_accts=sum(no_accts),
             new_accts=sum(new_accts)) 
 
-# this is used to fill a gap in reporting.
+# fill a gap in Unitil reporting. ----
 # Unitil did not provide the kwh in the zip code files, so I use these averages
 # to estimate it down below.
 FIT_low_avg_kwh_Sept19<-monthly_cs %>% filter(region == "FIT") %>%
@@ -197,6 +195,9 @@ under=filter(monthly_cs_welfare,bill_difference<0) %>%
 
 write_csv(bind_rows(net,under,over),"../output/annual_summary.csv")
 
+
+
+
 # cs_vs_basic_agg ----
 # estimate participation in competitive supply relative to basic and agg
 monthly_basic <- monthly_basic[,c(1,2,3,4,5,6)]
@@ -282,6 +283,8 @@ suppliers=monthly_cs_welfare %>%
 write_csv(suppliers,"../output/supplier_summary.csv")
 
 
+
+
 # rates by top three suppliers ----
 # Previously the top three supplier were hard-coded as VIRID, CON E, and CONSO.
 # This was based on total number of accounts by supplier.
@@ -291,172 +294,14 @@ supplier_totals <- suppliers %>% group_by(supplier_id) %>% summarise(total_accts
 top_suppliers_ordered <- supplier_totals %>% arrange(desc(total_accts))
 top_three_suppliers <- top_suppliers_ordered[1:3,]
 top_three_suppliers
-                                     
+
 # Now they are NRG R, DIRECT, & CONST.
 # VIRID dropped well down, with only 242907 accounts.
 
-# top_suppliers=monthly_cs_welfare %>%
-#   mutate(supplier_id=substr(supplier,1,5)) %>%
-#   mutate(supplier_id=ifelse(supplier_id=="CON E","CONSO",supplier_id)) %>%
-#   filter(supplier_id %in% c("NRG R","DIREC","CONST"),
-#          kwh>0,
-#          rate>0,
-#          income=="all") %>% 
-#   mutate(markup_bin=cut(rate_difference,c(-Inf,seq(-.02,.09,.01),Inf))) %>% 
-#   group_by(markup_bin,supplier_id) %>%
-#   summarize(no_accts=sum(no_accts)) 
-# 
-# all_levels=expand.grid(supplier_id=unique(top_suppliers$supplier_id),
-#                        markup_bin=unique(top_suppliers$markup_bin))
-# top_suppliers=left_join(all_levels,top_suppliers)
-# 
-# 
-# 
-# yearly_summary=monthly_cs_welfare %>% 
-#   group_by(income,date,region) %>% 
-#   summarize(rate=sum(rate*kwh)/sum(kwh),
-#             kwh=sum(kwh),
-#             no_accts=sum(no_accts),
-#             basic_rate=mean(basic_rate)) %>% 
-#   left_join(monthly_basic) %>% 
-#   left_join(monthly_agg) %>% 
-#   group_by(income) %>% 
-#   summarize(cs_kwh=sum(kwh),
-#             cs_rate=sum(rate*kwh)/sum(kwh),
-#             cs_accts=sum(no_accts),
-#             cs_basic_rate=sum(basic_rate*kwh)/sum(kwh),
-#             basic_accts=sum(basic_accts),
-#             basic_kwh=sum(basic_kwh),
-#             agg_accts=sum(agg_accts),
-#             agg_kwh=sum(agg_kwh)) %>% 
-#   mutate(cs_participation=cs_accts/(cs_accts+basic_accts+agg_accts),
-#          cs_premium=cs_rate-cs_basic_rate,
-#          cs_loss=cs_premium*cs_kwh/cs_accts) %>% 
-#   select(income,cs_participation,cs_premium,cs_loss) %>% 
-#   gather(variable,value,2:4)
-# 
-# summary(yearly_summary)
-# 
-# 
-# 
-# ##################
-# # summary of number of accts and bill differences
-# yearly_summary=monthly_cs_welfare %>% 
-#   group_by(income,date,region) %>% 
-#   summarize(no_accts=sum(no_accts,na.rm=T),
-#             bill_difference=sum(bill_difference,na.rm=T)) %>% 
-#   left_join(monthly_basic) %>% 
-#   left_join(monthly_agg) %>% 
-#   group_by(income) %>% 
-#   summarize(total_accts=sum(basic_accts,na.rm=T)+sum(agg_accts,na.rm=T)+sum(no_accts,na.rm=T),
-#             basic_accts=sum(basic_accts,na.rm=T),
-#             cs_accts=sum(no_accts,na.rm=T),
-#             bill_difference=sum(bill_difference,na.rm=T)) %>% 
-#   mutate(income=factor(income,levels=c("other","low","all"))) %>% 
-#   gather(variable,value,2:5)
-# 
-# summary(yearly_summary)
-# 
-# 
-# # CS premia ----
-# rate_differences=monthly_cs_welfare %>%
-#   mutate(rounded_dif=round(rate_difference/.01)*.01) %>%
-#   group_by(rounded_dif,income) %>%
-#   summarize(kwh=sum(kwh)) %>%   
-#   mutate(income=factor(income,levels=c("other","low","all")))
-# 
-# summary(rate_differences)
-# 
-# 
-# 
-# 
-# # CS premia 2 ----
-# rate_differences=monthly_cs_welfare %>%
-#   mutate(rate_dif=cut(rate_difference,c(-Inf,seq(-.04,.15,.01),Inf),right=F)) %>%
-#   group_by(rate_dif,income) %>%
-#   summarize(kwh=sum(kwh)) %>%   
-#   mutate(income=factor(income,levels=c("other","low","all")),
-#          welfare=ifelse(substr(rate_dif,2,2)=="-","gain","loss"))
-# 
-# 
-# 
-# 
-# # bill differences 2 ----
-# bill_differences=monthly_cs_welfare %>% 
-#   mutate(bill_dif=cut(bill_difference_pp,c(-Inf,seq(-40,100,10),Inf),right=F)) %>%
-#   group_by(bill_dif,income) %>%
-#   summarize(no_accts=sum(no_accts)) %>% 
-#   filter(!is.na(bill_dif)) %>% 
-#   mutate(income=factor(income,levels=c("other","low","all")),
-#          welfare=ifelse(substr(bill_dif,2,2)=="-","gain","loss"))
-# 
-# 
-# 
-# 
-# 
-# #for table of premia
-# rate_differences_table=monthly_cs_welfare %>%
-#   filter(kwh!=0,
-#          income!="other") %>% 
-#   mutate(premium_bin=cut(rate_difference,c(-Inf,seq(-.1,.25,.025),.5,.75,Inf))) %>%
-#   group_by(premium_bin,income) %>%
-#   summarize(no_accts=sum(no_accts,na.rm=T),
-#             kwh=sum(kwh,na.rm=T)) %>%   
-#   recast(premium_bin~income+variable) %>% 
-#   mutate(pct_low_accts=low_no_accts/all_no_accts,
-#          pct_low_kwh=low_kwh/all_kwh)
-# 
-# 
-# ################################
-# 
-# 
-# rate_averages=basic_rates %>%
-#   mutate(rate=basic_rate,
-#          income="basic",
-#          no_accts=1,
-#          kwh=1) %>%
-#   filter(region!="Fitchburg") %>%
-#   bind_rows(monthly_cs) %>%
-#   group_by_(.dots=c("date","region","income")) %>%
-#   summarize(avg_rate1=sum(no_accts*rate)/sum(no_accts),
-#             avg_rate2=sum(kwh*rate)/sum(kwh)) %>%
-#   ungroup() %>%
-#   mutate(region_income=interaction(region,income)) 
-# 
-# 
-# 
-# supplier_key=monthly_cs_welfare %>%
-#   ungroup() %>% 
-#   mutate(supplier_id=substr(supplier,1,5)) %>%
-#   mutate(supplier_id=ifelse(supplier_id=="CON E","CONSO",supplier_id)) %>%
-#   select(supplier,supplier_id) %>%
-#   distinct()
-# 
-# supplier_by_month=monthly_cs_welfare %>% 
-#   left_join(supplier_key) %>% 
-#   group_by(region,supplier_id,date,income) %>% 
-#   summarize(no_accts=sum(no_accts,na.rm=T),
-#             kwh=sum(kwh,na.rm=T),
-#             amt_billed=sum(amt_billed),
-#             basic_rate=mean(basic_rate),
-#             min_rate=min(rate,na.rm=T),
-#             max_rate=max(rate,na.rm=T),
-#             rate_q01=quantile(rate, probs=0.01),
-#             rate_q25=quantile(rate, probs=0.25),
-#             rate_q50=quantile(rate, probs=0.5),
-#             rate_q75=quantile(rate, probs=0.75),
-#             rate_q99=quantile(rate, probs=0.99))%>% 
-#   mutate(avg_rate=amt_billed/kwh,
-#          kwh_per_acct=kwh/no_accts,
-#          bill_per_acct=amt_billed/no_accts,
-#          basic_bill=kwh*basic_rate,
-#          basic_bill_per_acct=kwh_per_acct*basic_rate,
-#          bill_diff_per_acct=bill_per_acct-basic_bill_per_acct,
-#          avg_premium=avg_rate-basic_rate) %>% 
-#   left_join(supplier_key) 
-# supplier_by_month=supplier_by_month[!duplicated(supplier_by_month[1:4]),]
 
-# clean_muni_names ----
+
+
+# function: clean_muni_names ----
 clean_muni_names=function(df){
   df %>% 
     mutate(municipality=str_to_title(municipality)) %>% 
@@ -465,13 +310,15 @@ clean_muni_names=function(df){
     select(-clean_muni)
 }
 
-# clean_supplier_names ----
+# function: clean_supplier_names ----
 clean_supplier_names=function(df){
   df %>% 
     left_join(fread("clean_supplier_names.csv")) %>% 
     mutate(supplier=ifelse(!is.na(corrected_supplier),corrected_supplier,supplier)) %>% 
     select(-corrected_supplier)
 }
+
+
 
 # ---- census data ----
 # Note that some census rows have NA in the raw data
@@ -606,8 +453,8 @@ zips=zips %>%
   summarize(basic_rate=sum(basic_rate*all_tot_accts)/sum(all_tot_accts),
             all_avg_cs_rate=sum(all_avg_cs_rate*all_no_cs_accts)/sum(all_no_cs_accts),
             all_rate_dif=ifelse(sum(all_no_cs_accts)>0,
-                                    sum(all_rate_dif*all_no_cs_accts,na.rm=T)/sum(all_no_cs_accts),
-                                    NA),
+                                sum(all_rate_dif*all_no_cs_accts,na.rm=T)/sum(all_no_cs_accts),
+                                NA),
             all_tot_accts=sum(all_tot_accts),
             all_no_cs_accts=sum(all_no_cs_accts),
             all_no_agg_accts=sum(all_no_agg_accts),
@@ -815,105 +662,6 @@ write_csv(bottom_20_income,"../output/bottom_20_income.csv")
 
 
 
-
-# ---- zip level ----
-# 
-# all_files=list.files()
-# zipcode_cs_files=grep("^\\w+_q[4,5]_cs.xlsx",all_files,value=T)
-# zipcode_basic_files=grep("^\\w+_q[4,5]_basic.xlsx",all_files,value=T)
-# zipcode_agg_files=grep("^\\w+_q[4,5]_agg.xlsx",all_files,value=T)
-# 
-# basic_rates=read_excel("Basic_Rates_TH.xlsx")
-# 
-# zipcode_basic_zip=lapply(zipcode_basic_files,function(x){
-#   return(read_excel(x,col_types = c("date","text","text","numeric","text","text")))
-# }) %>%
-#   bind_rows() %>%
-#   mutate(zip=zip,
-#          municipality=str_to_title(municipality)) %>%
-#   select(-date) %>%
-#   group_by_(.dots=c("zip","region","income")) %>%
-#   summarize(no_basic_accts=sum(no_accts))
-# 
-# summary(zipcode_basic_zip)
-# 
-# zipcode_agg_zip=lapply(zipcode_agg_files,function(x){
-#   return(read_excel(x,col_types = c("date","text","text","text","numeric","text","text")))
-# }) %>%
-#   bind_rows() %>%
-#   mutate(zip=zip,
-#          municipality=str_to_title(municipality)) %>%
-#   group_by_(.dots=c("zip","region","income")) %>%
-#   summarize(no_agg_accts=sum(no_accts)) 
-# 
-# summary(zipcode_agg_zip)
-# 
-# # TH added a numeric column to match the raw file output with "new_accts"
-# zipcode_cs_zip=lapply(zipcode_cs_files,function(x){
-#   return(read_excel(x,col_types = c("date","text","text","text","numeric","numeric","numeric","numeric","text","text")))
-# }) %>%
-#   bind_rows() %>%
-#   mutate(zip=zip,
-#          municipality=str_to_title(municipality)) %>%
-#   group_by_(.dots=c("zip","region","income")) %>%
-#   summarize(avg_cs_rate=sum(rate*no_accts,na.rm=T)/sum(no_accts,na.rm=T),
-#             no_cs_accts=sum(no_accts,na.rm=T),
-#             new_cs_accts=sum(new_accts,na.rm=T)) 
-# 
-# zips_zip=full_join(zipcode_basic_zip,zipcode_cs_zip,by=c("zip", "region","income")) %>%
-#   full_join(zipcode_agg_zip,by=c("zip", "region","income")) %>%
-#   left_join(filter(basic_rates,date==max(basic_rates$date)), by = "region") %>% 
-#   select(-date)
-# 
-# zips_zip[is.na(zips_zip$no_basic_accts),"no_basic_accts"]=0
-# zips_zip[is.na(zips_zip$no_cs_accts),"no_cs_accts"]=0
-# zips_zip[is.na(zips_zip$new_cs_accts),"new_cs_accts"]=0
-# zips_zip[is.na(zips_zip$no_agg_accts),"no_agg_accts"]=0
-# #zips_zip[is.na(zips_zip$avg_cs_rate),"avg_cs_rate"]=0
-# 
-# zips_zip=zips_zip %>%
-#   mutate(tot_accts=no_basic_accts+no_cs_accts+no_agg_accts) 
-# 
-# zips_zip=recast(zips_zip,zip+region~income+variable) %>%
-#   rename(basic_rate=all_basic_rate) %>%
-#   mutate(low_basic_rate=NULL)
-# 
-# zips_zip[is.na(zips_zip$low_tot_accts),"low_tot_accts"]=0
-# zips_zip[is.na(zips_zip$low_no_basic_accts),"low_no_basic_accts"]=0
-# zips_zip[is.na(zips_zip$low_no_cs_accts),"low_no_cs_accts"]=0
-# zips_zip[is.na(zips_zip$low_new_cs_accts),"low_new_cs_accts"]=0
-# zips_zip[is.na(zips_zip$low_no_agg_accts),"low_no_agg_accts"]=0
-# #zips_zip[is.na(zips_zip$low_avg_cs_rate),"low_avg_cs_rate"]=0
-# 
-# zips_zip_map=zips_zip %>%
-#   group_by(zip, region) %>% 
-#   summarize(all_tot_accts=sum(all_tot_accts),
-#             all_no_basic_accts=sum(all_no_basic_accts),
-#             all_no_agg_accts=sum(all_no_agg_accts),
-#             all_no_cs_accts=sum(all_no_cs_accts),
-#             low_tot_accts=sum(low_tot_accts),
-#             low_no_basic_accts=sum(low_no_basic_accts),
-#             low_no_agg_accts=sum(low_no_agg_accts),
-#             low_no_cs_accts=sum(low_no_cs_accts)) %>% 
-#   ungroup() %>% 
-#   mutate(other_tot_accts=all_tot_accts-low_tot_accts,
-#          other_no_cs_accts=all_no_cs_accts-low_no_cs_accts,
-#          other_no_agg_accts=all_no_agg_accts-low_no_agg_accts,
-#          all_pct_cs=all_no_cs_accts/all_tot_accts,
-#          low_pct_cs=ifelse(low_tot_accts>0,
-#                            low_no_cs_accts/low_tot_accts,
-#                            NA),
-#          other_pct_cs=ifelse(other_tot_accts>0,
-#                              other_no_cs_accts/other_tot_accts,
-#                              NA)) %>%
-#   filter(all_tot_accts>9) %>%
-#   mutate(agg_present=ifelse(all_no_agg_accts>9,1,0)) %>% 
-#   select(zip,region,all_pct_cs,low_pct_cs,other_pct_cs,agg_present,all_tot_accts)
-
-
-
-
-
 # muni_level2 -  grouping across EDCS, with suppliers ----
 
 zipcode_cs_files=grep("^\\w+_q[4,5]_cs.xlsx",all_files,value=T)
@@ -962,7 +710,7 @@ muni_cs=lapply(zipcode_cs_files,function(x){
 
 
 
-#  fill in gaps in kwh from calculations above
+#  fill in gaps in kwh from calculations above ----
 muni_cs[which(is.na(muni_cs$kwh) == T & 
                 muni_cs$income == "low"),]$kwh <- 
   muni_cs[which(is.na(muni_cs$kwh) == T & 
@@ -1042,101 +790,12 @@ muni_small=muni %>%
 
 write_csv(muni_small,"../output/muni_level2.csv")
 
-# regressions ----
 
-# simple
-# reg=list()
-# reg[[1]]=felm(low_pct_cs~pct_low_accts|region,
-#               data=filter(zips,low_tot_accts>9))
-# reg[[2]]=felm(low_pct_cs~log(hh_inc)|region,
-#               data=filter(zips,low_tot_accts>9))
-# reg[[3]]=felm(other_pct_cs~pct_low_accts|region,
-#               data=filter(zips,other_tot_accts>9&low_tot_accts>9))
-# reg[[4]]=felm(other_pct_cs~log(hh_inc)|region,
-#               data=filter(zips,other_tot_accts>9&low_tot_accts>9))
-# stargazer(reg,type="text")
-# 
-# reg=list()
-# reg[[1]]=felm(low_pct_cs~pct_low_accts:region+region,
-#               data=filter(zips,low_tot_accts>9))
-# reg[[2]]=felm(low_pct_cs~log(hh_inc):region+region,
-#               data=filter(zips,low_tot_accts>9))
-# reg[[3]]=felm(other_pct_cs~pct_low_accts:region+region,
-#               data=filter(zips,other_tot_accts>9&low_tot_accts>9))
-# reg[[4]]=felm(other_pct_cs~log(hh_inc):region+region,
-#               data=filter(zips,other_tot_accts>9&low_tot_accts>9))
-# stargazer(reg,type="text")
-# 
-# 
-# # other ~ inc + nw
-# reg=list()
-# reg[[1]]=felm(other_pct_cs~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,other_tot_accts>9))
-# # other ~ pct_low + nw
-# reg[[2]]=felm(other_pct_cs~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,other_tot_accts>9))
-# # low ~ income + nw
-# reg[[3]]=felm(low_pct_cs~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # low ~ pct_low + nw
-# reg[[4]]=felm(low_pct_cs~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # all ~ income + nw
-# reg[[5]]=felm(all_pct_cs~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,all_tot_accts>9))
-# # all ~ pct_low + nw
-# reg[[6]]=felm(all_pct_cs~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,all_tot_accts>9))
-# stargazer(reg,type="text")
-# 
-# # # other ~ inc + nw
-# reg=list()
-# reg[[1]]=felm(other_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # other ~ pct_low + nw
-# reg[[2]]=felm(other_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # low ~ income + nw
-# reg[[3]]=felm(low_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # low ~ pct_low + nw
-# reg[[4]]=felm(low_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # all ~ income + nw
-# reg[[5]]=felm(all_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+log(hh_inc)+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# # all ~ pct_low + nw
-# reg[[6]]=felm(all_avg_rate_dif~log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#                 agg_present+suppliers|region|0|municipality,
-#               data=filter(zips,low_tot_accts>9))
-# stargazer(reg,type="text")
-# 
-# reg=felm(all_pct_cs~pct_low_accts+pct_nw_or_h|municipality,
-#          data=filter(zips,all_tot_accts>9))
-# 
-# reg=lm(low_pct_cs~pct_low_accts,#+pct_nw_or_h+municipality,
-#        data=filter(zips,low_tot_accts>9))
-# summary(reg)
-# 
-# cor.test(filter(zips,low_tot_accts>9)$low_pct_cs,filter(zips,low_tot_accts>9)$pct_low_accts)
-# 
-# temp=zips %>%
-#   gather(key="income",value="dif",other_avg_rate_dif,low_avg_rate_dif)
-# 
-# reg=felm(dif~income+log(all_tot_accts)+pct_nw_or_h+pct_low_accts+
-#            agg_present+suppliers|region|0|municipality,
-#          data=filter(temp,low_tot_accts>9&!is.na(dif)))
-# summary(reg)
+
+# correlations ----
+# used this one 1/29/2021
+cor.test(filter(zips,low_tot_accts>9)$all_pct_cs,filter(zips,low_tot_accts>9)$pct_low_accts)
+
+cor.test(filter(zips,low_tot_accts>9)$all_rate_dif,filter(zips,low_tot_accts>9)$pct_low_accts)
 
 
